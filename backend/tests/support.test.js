@@ -61,6 +61,12 @@ describe('Backend API Test Suite', () => {
     const doc = await Support.findOne({ visitorId });
     expect(doc).not.toBeNull();
     expect(doc.visitorId).toBe(visitorId);
+    expect(doc._id).toBeDefined();
+
+    // Verify low-level MongoDB driver document existence in actual collection
+    const rawDoc = await mongoose.connection.db.collection(Support.collection.collectionName).findOne({ visitorId });
+    expect(rawDoc).not.toBeNull();
+    expect(rawDoc.visitorId).toBe(visitorId);
 
     // Verify GET /api/support reflects count of 1
     const getRes = await request(app).get('/api/support');
