@@ -116,7 +116,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenPosterModal, onOpenPledgeModal
                 onClick={() => sfx.click()}
                 className="px-6 py-3.5 bg-[#16161c] hover:bg-[#202028] text-zinc-200 hover:text-white font-tech text-xs sm:text-sm tracking-wider uppercase border border-zinc-700 hover:border-zinc-500 transition-all flex items-center space-x-2"
               >
-                <span>VIEW 2-POINT MANIFESTO</span>
+                <span>EXPLORE MANIFESTO</span>
                 <ChevronRight className="w-4 h-4 text-[#dc2626]" />
               </a>
 

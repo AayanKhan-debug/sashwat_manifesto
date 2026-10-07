@@ -106,7 +106,7 @@ export function App() {
         <MarqueeBanner variant="red" />
 
         {/* 3. MANIFESTO */}
-        <Manifesto />
+        <Manifesto onOpenPledgeModal={() => setIsPledgeModalOpen(true)} />
 
         {/* Secondary ticker tape */}
         <MarqueeBanner variant="black" />
