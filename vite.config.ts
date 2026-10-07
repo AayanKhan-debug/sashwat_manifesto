@@ -9,20 +9,6 @@ export default defineConfig({
     react(),
   ],
   server: {
-    host: true,
-    allowedHosts: true,
-    cors: true,
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:5000',
-        changeOrigin: true,
-      },
-    },
-  },
-  preview: {
-    host: true,
-    allowedHosts: true,
-    cors: true,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:5000',

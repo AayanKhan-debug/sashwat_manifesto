@@ -6,14 +6,13 @@ import axios from 'axios';
  */
 const getApiBaseUrl = (): string => {
   if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+    return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
   }
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return `http://${hostname}:5000`;
-    }
+  // In development, target the local Express backend on port 5000
+  if (import.meta.env.DEV) {
+    return 'http://localhost:5000';
   }
+  // In production, fallback to same-origin relative paths (or custom domain proxy)
   return '';
 };
 
