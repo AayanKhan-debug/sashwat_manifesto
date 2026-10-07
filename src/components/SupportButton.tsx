@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
-import { Heart, Loader2, AlertCircle } from 'lucide-react';
+import React from 'react';
+import { Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sfx } from '../utils/sound';
 
 interface SupportButtonProps {
-  count: number | null;
-  isLoading: boolean;
+  count: number;
   hasSupported: boolean;
-  onSupport: () => Promise<void>;
+  onSupport: () => void;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'primary' | 'outline';
   className?: string;
@@ -15,32 +14,15 @@ interface SupportButtonProps {
 
 export const SupportButton: React.FC<SupportButtonProps> = ({
   count,
-  isLoading,
   hasSupported,
   onSupport,
   size = 'md',
   variant = 'primary',
   className = '',
 }) => {
-  const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const handleClick = async () => {
-    if (submitting || isLoading) return;
-
-    // Trigger mechanical sound feedback
+  const handleClick = () => {
     sfx.stamp();
-    setErrorMsg(null);
-    setSubmitting(true);
-
-    try {
-      await onSupport();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unable to record support. Please retry.';
-      setErrorMsg(message);
-    } finally {
-      setSubmitting(false);
-    }
+    onSupport();
   };
 
   const sizeClasses = {
@@ -49,15 +31,14 @@ export const SupportButton: React.FC<SupportButtonProps> = ({
     lg: 'px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg',
   }[size];
 
-  const countDisplay = count !== null ? `+${count}` : '...';
+  const countDisplay = `${count}+`;
 
   return (
     <div className="relative inline-flex flex-col items-center">
       <button
         onClick={handleClick}
-        disabled={submitting || isLoading}
-        aria-label={hasSupported ? `Supported (+${count})` : `Support Sashwat Kumar (+${count})`}
-        className={`relative overflow-hidden font-anton tracking-wider uppercase transition-all duration-200 flex items-center space-x-2 border shadow-md active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed ${
+        aria-label={hasSupported ? `SUPPORTED ${countDisplay}` : `SUPPORT ${countDisplay}`}
+        className={`relative overflow-hidden font-anton tracking-wider uppercase transition-all duration-200 flex items-center space-x-2 border shadow-md active:scale-95 ${
           hasSupported
             ? 'bg-[#181822] text-[#f4f1ea] border-zinc-700 hover:border-red-600/60'
             : variant === 'primary'
@@ -65,18 +46,14 @@ export const SupportButton: React.FC<SupportButtonProps> = ({
             : 'bg-transparent hover:bg-[#dc2626] text-[#f4f1ea] border-[#dc2626]'
         } ${sizeClasses} ${className}`}
       >
-        {/* Heart Icon / Loading spinner */}
-        {submitting ? (
-          <Loader2 className="w-4 h-4 animate-spin text-[#f4f1ea]" />
-        ) : (
-          <Heart
-            className={`w-4 h-4 transition-transform duration-300 ${
-              hasSupported
-                ? 'fill-red-600 text-red-600 scale-110'
-                : 'fill-current text-white group-hover:scale-110'
-            }`}
-          />
-        )}
+        {/* Heart Icon */}
+        <Heart
+          className={`w-4 h-4 transition-transform duration-300 ${
+            hasSupported
+              ? 'fill-red-600 text-red-600 scale-110'
+              : 'fill-current text-white group-hover:scale-110'
+          }`}
+        />
 
         {/* Text Status */}
         <span>{hasSupported ? 'SUPPORTED' : 'SUPPORT'}</span>
@@ -96,14 +73,6 @@ export const SupportButton: React.FC<SupportButtonProps> = ({
           </AnimatePresence>
         </span>
       </button>
-
-      {/* Non-intrusive error notice below button */}
-      {errorMsg && (
-        <div className="absolute top-full mt-1.5 z-30 bg-[#161214] border border-[#dc2626] text-red-300 text-[11px] font-tech px-2.5 py-1 whitespace-nowrap flex items-center space-x-1.5 shadow-lg">
-          <AlertCircle className="w-3 h-3 text-[#dc2626] shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
     </div>
   );
 };

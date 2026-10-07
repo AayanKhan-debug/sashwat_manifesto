@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { IntroScreen } from './components/IntroScreen';
 import { Navbar } from './components/Navbar';
@@ -14,12 +14,10 @@ import { PosterModal } from './components/PosterModal';
 import { PledgeModal } from './components/PledgeModal';
 import { AudioControl } from './components/AudioControl';
 import {
-  fetchSupportCount,
-  submitSupport,
-  getAnonymousVisitorId,
-  getLocalSupportState,
-  setLocalSupportState,
-} from './services/supportApi';
+  getStoredSupportCount,
+  getHasSupported,
+  recordLocalSupport,
+} from './utils/supportStorage';
 import { sfx } from './utils/sound';
 
 export function App() {
@@ -28,72 +26,35 @@ export function App() {
   const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
   const [isPledgeModalOpen, setIsPledgeModalOpen] = useState(false);
 
-  // Real Persistent MongoDB Support State - Initialized without hardcoded values
-  const [supporterCount, setSupporterCount] = useState<number | null>(null);
-  const [isLoadingSupport, setIsLoadingSupport] = useState<boolean>(true);
-  const [hasSupported, setHasSupported] = useState<boolean>(false);
+  // Frontend-Only Campaign Support State (Persisted in localStorage, base 100)
+  const [supporterCount, setSupporterCount] = useState<number>(() => getStoredSupportCount());
+  const [hasSupported, setHasSupported] = useState<boolean>(() => getHasSupported());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Load real verified count and local visitor state on mount
-  const loadInitialSupportData = useCallback(async () => {
-    setIsLoadingSupport(true);
-    try {
-      const count = await fetchSupportCount();
-      setSupporterCount(count);
-    } catch (error) {
-      console.warn('Backend support API unavailable on initial load:', error);
-      // Fallback to 0 if database has no records or backend unreachable
-      setSupporterCount((prev) => (prev !== null ? prev : 0));
-    } finally {
-      setIsLoadingSupport(false);
-      setHasSupported(getLocalSupportState());
-    }
-  }, []);
-
-  useEffect(() => {
-    loadInitialSupportData();
-  }, [loadInitialSupportData]);
-
   // Handler for direct support click on navigation or buttons
-  const handleDirectSupport = async () => {
+  const handleDirectSupport = () => {
+    sfx.stamp();
+
     if (hasSupported) {
-      // If already recorded support, open the voter badge/pass modal
+      // If already recorded support in this browser, open the supporter pass modal
       setIsPledgeModalOpen(true);
       return;
     }
 
-    setIsLoadingSupport(true);
-    try {
-      const visitorId = getAnonymousVisitorId();
-      const response = await submitSupport(visitorId);
+    // Trigger celebratory red & cream confetti
+    confetti({
+      particleCount: 75,
+      spread: 60,
+      origin: { y: 0.2 },
+      colors: ['#dc2626', '#f4f1ea', '#991b1b', '#ffffff'],
+    });
 
-      sfx.stamp();
+    const result = recordLocalSupport();
+    setSupporterCount(result.count);
+    setHasSupported(true);
 
-      // Trigger celebratory red & cream confetti
-      confetti({
-        particleCount: 75,
-        spread: 60,
-        origin: { y: 0.2 },
-        colors: ['#dc2626', '#f4f1ea', '#991b1b', '#ffffff'],
-      });
-
-      // Update strictly with server response count
-      setSupporterCount(response.count);
-      setHasSupported(true);
-      setLocalSupportState(true);
-
-      setToastMessage(
-        response.alreadySupported
-          ? 'You have already recorded support. Thank you for standing with Sashwat!'
-          : `Support recorded! Verified campaign supporters: ${response.count}`
-      );
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'Could not record support. Please retry.';
-      setToastMessage(`Network Notice: ${errorMsg}`);
-    } finally {
-      setIsLoadingSupport(false);
-      setTimeout(() => setToastMessage(null), 4500);
-    }
+    setToastMessage('Support recorded! Thank you for standing with Sashwat.');
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   const handleEnterCampaign = () => {
@@ -107,7 +68,7 @@ export function App() {
     setToastMessage(`Support recorded for ${supporterName}! Thank you for standing with Sashwat.`);
     setTimeout(() => {
       setToastMessage(null);
-    }, 4500);
+    }, 4000);
   };
 
   return (
@@ -131,7 +92,6 @@ export function App() {
         onOpenPledge={() => setIsPledgeModalOpen(true)}
         onSupportClick={handleDirectSupport}
         supporterCount={supporterCount}
-        isLoadingSupport={isLoadingSupport}
         hasSupported={hasSupported}
       />
 

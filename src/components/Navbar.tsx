@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Menu, X, Heart, ShieldAlert, Loader2 } from 'lucide-react';
+import { Volume2, VolumeX, Menu, X, Heart, ShieldAlert } from 'lucide-react';
 import { sfx } from '../utils/sound';
 
 interface NavbarProps {
   onOpenPledge: () => void;
   onSupportClick: () => void;
-  supporterCount: number | null;
-  isLoadingSupport: boolean;
+  supporterCount: number;
   hasSupported: boolean;
 }
 
@@ -14,7 +13,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPledge,
   onSupportClick,
   supporterCount,
-  isLoadingSupport,
   hasSupported,
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -52,11 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const displayCount = isLoadingSupport
-    ? '...'
-    : supporterCount !== null
-    ? `+${supporterCount}`
-    : '+0';
+  const displayCount = `${supporterCount}+`;
 
   return (
     <>
@@ -132,7 +126,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {soundEnabled ? <Volume2 className="w-4 h-4 text-[#dc2626]" /> : <VolumeX className="w-4 h-4" />}
               </button>
 
-              {/* Real Support Action Button */}
+              {/* Campaign Support Action Button */}
               <button
                 onClick={() => {
                   sfx.stamp();
@@ -142,24 +136,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onSupportClick();
                   }
                 }}
-                disabled={isLoadingSupport}
                 className={`relative overflow-hidden px-3.5 sm:px-5 py-2 sm:py-2.5 font-anton text-sm sm:text-base tracking-wider transition-all transform active:scale-95 border flex items-center space-x-2 ${
                   hasSupported
                     ? 'bg-[#181822] text-[#f4f1ea] border-zinc-700 hover:border-red-500 shadow-md'
                     : 'bg-[#dc2626] hover:bg-[#b91c1c] text-[#f4f1ea] border-red-500 shadow-[0_4px_16px_rgba(220,38,38,0.4)]'
                 }`}
                 title={hasSupported ? 'You have supported Sashwat Kumar (Click to view pass)' : 'Support Sashwat Kumar'}
-                aria-label={hasSupported ? `Supported (${displayCount})` : `Support (${displayCount})`}
+                aria-label={hasSupported ? `SUPPORTED ${displayCount}` : `SUPPORT ${displayCount}`}
               >
-                {isLoadingSupport ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
-                ) : (
-                  <Heart
-                    className={`w-4 h-4 ${
-                      hasSupported ? 'fill-red-600 text-red-600' : 'fill-current text-white animate-pulse'
-                    }`}
-                  />
-                )}
+                <Heart
+                  className={`w-4 h-4 ${
+                    hasSupported ? 'fill-red-600 text-red-600' : 'fill-current text-white animate-pulse'
+                  }`}
+                />
                 <span>{hasSupported ? 'SUPPORTED' : 'SUPPORT'}</span>
                 <span className="bg-black/60 text-[10px] sm:text-xs px-2 py-0.5 font-tech font-bold text-red-200">
                   {displayCount}

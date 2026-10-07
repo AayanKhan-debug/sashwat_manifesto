@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { X, CheckCircle, Heart, Share2, Loader2, AlertCircle } from 'lucide-react';
+import { X, CheckCircle, Heart, Share2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { sfx } from '../utils/sound';
-import { getAnonymousVisitorId, submitSupport, setLocalSupportState } from '../services/supportApi';
+import { recordLocalSupport } from '../utils/supportStorage';
 
 interface PledgeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPledgeSuccess: (supporterName: string, newCount: number) => void;
-  currentCount: number | null;
+  currentCount: number;
 }
 
 export const PledgeModal: React.FC<PledgeModalProps> = ({
@@ -19,45 +19,30 @@ export const PledgeModal: React.FC<PledgeModalProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [departmentYear, setDepartmentYear] = useState('ISE Student');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [pledged, setPledged] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [finalCount, setFinalCount] = useState<number | null>(currentCount);
+  const [finalCount, setFinalCount] = useState<number>(currentCount);
 
   if (!isOpen) return null;
 
-  const handlePledge = async (e: React.FormEvent) => {
+  const handlePledge = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || isSubmitting) return;
+    if (!name.trim()) return;
 
-    setErrorMsg(null);
-    setIsSubmitting(true);
+    sfx.stamp();
 
-    try {
-      const visitorId = getAnonymousVisitorId();
-      const response = await submitSupport(visitorId);
+    // Trigger high-impact red & cream confetti
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#dc2626', '#f4f1ea', '#991b1b', '#ffffff'],
+    });
 
-      sfx.stamp();
-
-      // Trigger high-impact red & cream confetti
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#dc2626', '#f4f1ea', '#991b1b', '#ffffff'],
-      });
-
-      setLocalSupportState(true);
-      setFinalCount(response.count);
-      setPledged(true);
-      onPledgeSuccess(name.trim(), response.count);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unable to connect to support server. Please try again.';
-      setErrorMsg(message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = recordLocalSupport();
+    setFinalCount(result.count);
+    setPledged(true);
+    onPledgeSuccess(name.trim(), result.count);
   };
 
   const handleShare = () => {
@@ -75,77 +60,80 @@ export const PledgeModal: React.FC<PledgeModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="pledge-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="relative max-w-lg w-full bg-[#101015] border-2 border-[#dc2626] shadow-[0_0_50px_rgba(220,38,38,0.4)] p-6 sm:p-8 overflow-hidden rounded-none"
+        className="relative w-full max-w-lg bg-[#111116] border-2 border-[#dc2626] p-6 sm:p-8 shadow-[0_10px_50px_rgba(220,38,38,0.3)] text-[#f4f1ea]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Header bar */}
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3 mb-6">
+        {/* Corner Accents */}
+        <div className="absolute top-0 left-0 w-3 h-3 bg-[#dc2626]" />
+        <div className="absolute top-0 right-0 w-3 h-3 bg-[#dc2626]" />
+        <div className="absolute bottom-0 left-0 w-3 h-3 bg-[#dc2626]" />
+        <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#dc2626]" />
+
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-6">
           <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 bg-[#dc2626] animate-pulse inline-block" />
+            <span className="w-2.5 h-2.5 bg-[#dc2626]" />
             <span id="pledge-modal-title" className="font-tech text-xs uppercase tracking-widest text-zinc-300">
               ISE SUPPORT // SANGYARTHAM
             </span>
           </div>
-
           <button
             onClick={() => {
               sfx.click();
               onClose();
             }}
-            className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-            aria-label="Close dialog"
+            className="p-1.5 text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-700 hover:border-red-500 transition-colors"
+            aria-label="Close Modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {!pledged ? (
           <div>
             <div className="mb-6">
-              <h3 className="font-anton text-3xl sm:text-4xl text-[#f4f1ea] uppercase tracking-wide">
-                STAND WITH <span className="text-[#dc2626]">SASHWAT</span>
+              <span className="inline-block px-2.5 py-0.5 bg-[#dc2626] text-white font-tech text-[10px] uppercase tracking-wider mb-2">
+                OFFICIAL SUPPORTER PLEDGE
+              </span>
+              <h3 className="font-anton text-2xl sm:text-3xl uppercase tracking-wide">
+                STAND WITH SASHWAT KUMAR
               </h3>
-              <p className="font-tech text-xs text-zinc-400 uppercase tracking-widest mt-1">
+              <p className="text-zinc-400 font-tech text-xs mt-1">
                 Record your support for the Vice President candidate of the ISE Forum
               </p>
             </div>
 
-            {errorMsg && (
-              <div className="mb-4 p-3 bg-red-950/40 border border-red-800 text-red-200 text-xs font-tech flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-[#dc2626]" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
             <form onSubmit={handlePledge} className="space-y-4">
               <div>
-                <label className="block font-tech text-xs uppercase tracking-wider text-zinc-300 mb-1.5">
+                <label htmlFor="supporter-name" className="block text-xs font-tech uppercase tracking-wider text-zinc-300 mb-1">
                   YOUR NAME / SUPPORTER IDENTIFIER *
                 </label>
                 <input
+                  id="supporter-name"
                   type="text"
                   required
-                  placeholder="e.g. Rahul / Ananya"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-[#171720] border border-zinc-700 text-[#f4f1ea] px-4 py-3 font-sans text-sm focus:outline-none focus:border-[#dc2626] focus:ring-1 focus:ring-[#dc2626] transition-colors"
+                  placeholder="e.g. Rahul Sharma / ISE Batch '26"
+                  className="w-full bg-black/60 border border-zinc-700 focus:border-[#dc2626] focus:outline-none px-4 py-2.5 text-sm font-sans text-white placeholder-zinc-600 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block font-tech text-xs uppercase tracking-wider text-zinc-300 mb-1.5">
-                  AFFILIATION / BATCH
+                <label htmlFor="supporter-year" className="block text-xs font-tech uppercase tracking-wider text-zinc-300 mb-1">
+                  AFFILIATION / YEAR
                 </label>
                 <select
+                  id="supporter-year"
                   value={departmentYear}
                   onChange={(e) => setDepartmentYear(e.target.value)}
-                  className="w-full bg-[#171720] border border-zinc-700 text-[#f4f1ea] px-4 py-3 font-sans text-sm focus:outline-none focus:border-[#dc2626] transition-colors"
+                  className="w-full bg-black/60 border border-zinc-700 focus:border-[#dc2626] focus:outline-none px-4 py-2.5 text-sm font-sans text-white transition-colors"
                 >
-                  <option value="ISE Student">ISE Student (General Body)</option>
+                  <option value="ISE Student">ISE Student</option>
                   <option value="ISE 1st Year">ISE 1st Year</option>
                   <option value="ISE 2nd Year">ISE 2nd Year</option>
                   <option value="ISE 3rd Year">ISE 3rd Year</option>
@@ -162,15 +150,10 @@ export const PledgeModal: React.FC<PledgeModalProps> = ({
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-anton text-base tracking-wider uppercase transition-all shadow-[0_4px_16px_rgba(220,38,38,0.4)] flex items-center justify-center space-x-2 border border-red-500 active:scale-[0.98] disabled:opacity-60"
+                  className="w-full py-3.5 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-anton text-base tracking-wider uppercase transition-all shadow-[0_4px_16px_rgba(220,38,38,0.4)] flex items-center justify-center space-x-2 border border-red-500 active:scale-[0.98]"
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  ) : (
-                    <Heart className="w-4 h-4 fill-current text-white" />
-                  )}
-                  <span>{isSubmitting ? 'RECORDING SUPPORT...' : 'CONFIRM SUPPORT'}</span>
+                  <Heart className="w-4 h-4 fill-current text-white" />
+                  <span>CONFIRM SUPPORT</span>
                 </button>
               </div>
             </form>
@@ -198,7 +181,7 @@ export const PledgeModal: React.FC<PledgeModalProps> = ({
               <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-3">
                 <span className="font-anton text-sm text-[#f4f1ea]">ISE SUPPORTER PASS</span>
                 <span className="font-tech text-[10px] text-[#dc2626] font-bold">
-                  COUNT: +{finalCount ?? '0'}
+                  COUNT: {finalCount}+
                 </span>
               </div>
               <div className="text-xs font-tech space-y-1 text-zinc-300">
