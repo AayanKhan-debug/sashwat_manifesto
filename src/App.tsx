@@ -1,20 +1,24 @@
-import { useEffect, useState } from "react";
-import { IntroScreen } from "./components/IntroScreen";
-import { Navbar } from "./components/Navbar";
-import { Hero } from "./components/Hero";
-import { MarqueeBanner } from "./components/MarqueeBanner";
-import { Manifesto } from "./components/Manifesto";
-import { Candidate } from "./components/Candidate";
-import { TheCampaign } from "./components/TheCampaign";
-import { ManifestoHighlight } from "./components/ManifestoHighlight";
-import { FinalSection } from "./components/FinalSection";
-import { Footer } from "./components/Footer";
-import { PosterModal } from "./components/PosterModal";
-import { PledgeModal } from "./components/PledgeModal";
-import { AudioControl } from "./components/AudioControl";
-import { getSupportCount } from "./utils/supportApi";
-
-import { sfx } from "./utils/sound";
+import { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
+import { IntroScreen } from './components/IntroScreen';
+import { Navbar } from './components/Navbar';
+import { Hero } from './components/Hero';
+import { MarqueeBanner } from './components/MarqueeBanner';
+import { Manifesto } from './components/Manifesto';
+import { Candidate } from './components/Candidate';
+import { TheCampaign } from './components/TheCampaign';
+import { ManifestoHighlight } from './components/ManifestoHighlight';
+import { FinalSection } from './components/FinalSection';
+import { Footer } from './components/Footer';
+import { PosterModal } from './components/PosterModal';
+import { PledgeModal } from './components/PledgeModal';
+import { AudioControl } from './components/AudioControl';
+import {
+  getStoredSupportCount,
+  getHasSupported,
+  recordLocalSupport,
+} from './utils/supportStorage';
+import { sfx } from './utils/sound';
 
 export function App() {
   const [showIntro, setShowIntro] = useState(true);
@@ -22,28 +26,43 @@ export function App() {
   const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
   const [isPledgeModalOpen, setIsPledgeModalOpen] = useState(false);
 
-  const [supporterCount, setSupporterCount] = useState(0);
-  const [hasSupported, setHasSupported] = useState(false);
+  // Frontend-Only Campaign Support State (Persisted in localStorage, base 200)
+  const [supporterCount, setSupporterCount] = useState<number>(() => getStoredSupportCount());
+  const [hasSupported, setHasSupported] = useState<boolean>(() => getHasSupported());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Get support count from backend when the app loads
+  // Sync state on mount
   useEffect(() => {
-    const loadSupportCount = async () => {
-      try {
-        const count = await getSupportCount();
-        setSupporterCount(count);
-      } catch (error) {
-        console.error("Failed to load support count:", error);
-      }
-    };
-
-    loadSupportCount();
+    setSupporterCount(getStoredSupportCount());
+    setHasSupported(getHasSupported());
   }, []);
 
-  // Handle direct support button
+  // Handler for direct support click on navigation or buttons
   const handleDirectSupport = () => {
     sfx.stamp();
-    setIsPledgeModalOpen(true);
+
+    if (hasSupported) {
+      // If already recorded support in this browser, open the supporter pass modal
+      setToastMessage('You have already supported! Opening your supporter pass.');
+      setIsPledgeModalOpen(true);
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    // Trigger celebratory red & cream confetti
+    confetti({
+      particleCount: 75,
+      spread: 60,
+      origin: { y: 0.2 },
+      colors: ['#dc2626', '#f4f1ea', '#991b1b', '#ffffff'],
+    });
+
+    const result = recordLocalSupport();
+    setSupporterCount(result.count);
+    setHasSupported(true);
+
+    setToastMessage('Support recorded! Thank you for standing with Sashwat.');
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   const handleEnterCampaign = () => {
@@ -51,26 +70,21 @@ export function App() {
     setAudioStarted(true);
   };
 
-  const handlePledgeSuccess = (
-    supporterName: string,
-    newCount: number
-  ) => {
+  const handlePledgeSuccess = (supporterName: string, newCount: number) => {
     setSupporterCount(newCount);
     setHasSupported(true);
-
-    setToastMessage(
-      `Support recorded for ${supporterName}! Thank you for standing with Sashwat.`
-    );
-
+    setToastMessage(`Support recorded for ${supporterName}! Thank you for standing with Sashwat.`);
     setTimeout(() => {
-      setToastMessage(null);
+      setToastMessage(null), 4000;
     }, 4000);
   };
 
   return (
     <div className="min-h-screen bg-[#08080a] text-[#f4f1ea] font-sans antialiased relative selection:bg-[#dc2626] selection:text-white">
+      {/* 1. CINEMATIC INTRO FULL-SCREEN EXPERIENCE */}
       {showIntro && <IntroScreen onEnter={handleEnterCampaign} />}
 
+      {/* Floating Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-20 right-6 z-50 bg-[#16161d] border-2 border-[#dc2626] text-white px-5 py-3 shadow-[0_10px_30px_rgba(220,38,38,0.4)] flex items-center space-x-3 text-xs sm:text-sm font-tech animate-bounce">
           <span className="w-2.5 h-2.5 bg-[#dc2626] rounded-full inline-block" />
@@ -78,8 +92,10 @@ export function App() {
         </div>
       )}
 
+      {/* Fixed Music Control in Bottom-Right Corner */}
       {!showIntro && <AudioControl autoStart={audioStarted} />}
 
+      {/* Main Navigation with Real Dynamic Support Counter */}
       <Navbar
         onOpenPledge={() => setIsPledgeModalOpen(true)}
         onSupportClick={handleDirectSupport}
@@ -88,38 +104,49 @@ export function App() {
       />
 
       <main>
+        {/* 2. HERO SECTION */}
         <Hero
           onOpenPosterModal={() => setIsPosterModalOpen(true)}
           onOpenPledgeModal={() => setIsPledgeModalOpen(true)}
         />
 
+        {/* Dynamic ticker tape */}
         <MarqueeBanner variant="red" />
 
-        <Manifesto />
+        {/* 3. MANIFESTO */}
+        <Manifesto onOpenPledgeModal={() => setIsPledgeModalOpen(true)} />
 
+        {/* Secondary ticker tape */}
         <MarqueeBanner variant="black" />
 
+        {/* 4. THE CANDIDATE */}
         <Candidate
           onOpenPosterModal={() => setIsPosterModalOpen(true)}
           onOpenPledgeModal={() => setIsPledgeModalOpen(true)}
         />
 
+        {/* Accent ticker tape */}
         <MarqueeBanner variant="outline" />
 
+        {/* 5. CAMPAIGN MESSAGE */}
         <TheCampaign
           onOpenPledgeModal={() => setIsPledgeModalOpen(true)}
         />
 
+        {/* 6. MANIFESTO HIGHLIGHT */}
         <ManifestoHighlight />
 
+        {/* 7. FINAL CAMPAIGN SECTION */}
         <FinalSection
           onOpenPledgeModal={() => setIsPledgeModalOpen(true)}
           onOpenPosterModal={() => setIsPosterModalOpen(true)}
         />
       </main>
 
+      {/* 8. FOOTER */}
       <Footer />
 
+      {/* Modals */}
       <PosterModal
         isOpen={isPosterModalOpen}
         onClose={() => setIsPosterModalOpen(false)}
