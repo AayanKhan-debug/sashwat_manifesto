@@ -1,21 +1,17 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const supportSchema = new mongoose.Schema(
   {
     visitorId: {
       type: String,
-      required: true,
+      required: [true, 'Visitor ID is required'],
       unique: true,
+      trim: true,
+      index: true,
     },
-
-    name: {
-      type: String,
-      required: true,
-    },
-
-    departmentYear: {
-      type: String,
-      required: true,
+    createdAt: {
+      type: Date,
+      default: Date.now,
     },
   },
   {
@@ -23,6 +19,6 @@ const supportSchema = new mongoose.Schema(
   }
 );
 
-const Support = mongoose.model("Support", supportSchema);
+const Support = mongoose.model('Support', supportSchema);
 
 module.exports = Support;
